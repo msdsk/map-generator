@@ -1,0 +1,27 @@
+// Apply a natural box layout model to all elements
+// but allowing components to change
+// http://www.paulirish.com/2012/box-sizing-border-box-ftw/
+html,
+body {
+    min-width: 100%;
+    min-height: 100%;
+}
+
+body {
+    overflow: hidden;
+}
+
+* {
+    box-sizing: inherit;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.sea {
+    fill: rgb(174, 236, 255)
+}
+
+.land {
+    fill: rgb(141, 230, 153)
+}
