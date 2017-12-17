@@ -2,7 +2,7 @@ import helpers from 'helpers'
 
 function createMountains(voronoiPolygons, config) {
     let mountainConfig = {
-        rangeLength: [config.numberOfSitesSquareRoot, config.numberOfSitesSquareRoot * 4],
+        rangeLength: [config.numberOfSitesSquareRoot * 2, config.numberOfSitesSquareRoot * 5],
         minHeightToBeCalledAMountain: 10,
         tooDeepToMakeMountains: 0
     }
@@ -95,7 +95,7 @@ function createMountains(voronoiPolygons, config) {
 
     function erodeLand() {
         let landPolygons = voronoiPolygons.filter(polygon => {
-                return polygon.height > 0
+                return polygon.height > 1
             }),
             erosionStrength = .2
         landPolygons.sort((a, b) => {

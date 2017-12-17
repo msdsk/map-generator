@@ -136,14 +136,14 @@ function createLand(voronoiPolygons, config) {
 
     function setBasicLandShape() {
         let currentHeight = 1,
-            maxHeight = 5,
+            maxHeight = 3,
             lastPassChecked = shorePolygons.slice(),
             newPassChecked,
             landPolygonsToCheck = voronoiPolygons.filter((polygon) => {
                 return polygon.height > 0
             })
 
-        for (currentHeight; currentHeight < maxHeight; currentHeight = currentHeight + .3) {
+        for (currentHeight; currentHeight < maxHeight; currentHeight = currentHeight + .1) {
             newPassChecked = []
             lastPassChecked.forEach((polygon) => {
                 polygon.neighbours.forEach((neighbour) => {

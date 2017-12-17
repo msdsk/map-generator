@@ -31,14 +31,38 @@ svg.attr('width', width).attr('height', height)
 
 function prepareVoronoi() {
 
-    const sites = d3.range(config.numberOfSites).map(function (d) {
+    let sites = d3.range(config.numberOfSites).map(function (d) {
         return [Math.round(Math.random() * width), Math.round(Math.random() * height)]
     })
+
+    function distance(a, b) {
+        return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
+    }
+
     voronoi = d3.voronoi()
         .extent([
             [-1, -1],
             [width + 1, height + 1]
-        ])(sites)
+        ])
+
+    function relaxSites() {
+        //getting more uniform points distribution
+        let polygons = voronoi(sites).polygons(),
+            centroids = polygons.map(d3.polygonCentroid)
+        console.log(centroids)
+
+        sites.forEach((site, a) => {
+            if (centroids[a]) {
+                site[0] = centroids[a][0]
+                site[1] = centroids[a][1]
+            }
+        })
+    }
+    for (let i = 0; i < 3; i++) {
+        relaxSites()
+    }
+
+    voronoi = voronoi(sites)
 
     voronoiPolygons = voronoi.polygons()
     voronoiPolygons.forEach((polygon) => {
@@ -69,6 +93,8 @@ function determineColour(d) {
 
     if (d.height <= 0) {
         color = d3.interpolate('#333', "#000")(d.height / -20)
+    } else if (d.height === 1) {
+        color = "#727272"
     } else {
         color = d3.interpolate('#666', '#fff')(d.height / 30)
     }
@@ -84,13 +110,20 @@ function drawPolygons() {
         .attr("d", function (d) {
             return d ? "M" + d.join("L") + "Z" : null;
         })
-        .attr('fill', determineColour)
+        .style('fill', determineColour)
         .attr('data-landlockeness', (d) => {
             if (!d) {
                 return
             }
             return d.landLockedness
-        }).style('stroke', determineColour)
+        })
+        .attr('data-height', (d) => {
+            if (!d) {
+                return
+            }
+            return d.height
+        })
+        .style('stroke', determineColour)
 }
 
 (function init() {
