@@ -5,6 +5,8 @@
 // Load application styles
 import 'styles/index.scss';
 const d3 = Object.assign({}, require("d3-selection"), require("d3-voronoi"), require("d3-interpolate"), require("d3-collection"), require("d3-shape"), require("d3-path"), require("d3-polygon"), require("d3-quadtree"), require("d3-array"), require("d3-random"));
+import landmass from 'landmass'
+import mountains from 'mountains'
 
 // ================================
 // START YOUR APP HERE
@@ -15,140 +17,62 @@ const svg = d3.select('svg'),
 
 const config = {
     numberOfSites: 10000,
-    landmass: .4
+    landmass: .6,
+    mountainPasses: (() => {
+        return Math.floor(Math.random() * 3 + 5)
+    })()
 }
 
-//function for generating skewed distribution
-function randomNorm(skew) {
-    var x = (Math.random() - Math.random() + 1) / 2;
-    //the bigger skew the smaller average
-    if (typeof skew === "number") {
-        x = Math.pow(x, skew);
-    }
-    return x;
-}
+config.numberOfSitesSquareRoot = Math.floor(Math.pow(config.numberOfSites, .5))
+
+let voronoi, voronoiPolygons
 
 svg.attr('width', width).attr('height', height)
 
-const sites = d3.range(config.numberOfSites).map(function(d) {
-    return [Math.round(Math.random() * width), Math.round(Math.random() * height)]
-})
-let voronoi = d3.voronoi()
-    .extent([
-        [-1, -1],
-        [width + 1, height + 1]
-    ])(sites)
+function prepareVoronoi() {
 
-var voronoiPolygons = voronoi.polygons()
-voronoiPolygons.forEach((polygon) => {
-    polygon.neighbours = []
-    polygon.height = 0
-    polygon.landLockedness = null
-})
+    const sites = d3.range(config.numberOfSites).map(function (d) {
+        return [Math.round(Math.random() * width), Math.round(Math.random() * height)]
+    })
+    voronoi = d3.voronoi()
+        .extent([
+            [-1, -1],
+            [width + 1, height + 1]
+        ])(sites)
 
-voronoi.edges.forEach((edge, i) => {
+    voronoiPolygons = voronoi.polygons()
+    voronoiPolygons.forEach((polygon) => {
+        polygon.neighbours = []
+        polygon.height = 0
+        polygon.landLockedness = 0
+    })
 
-    if (!edge.left || !edge.right) {
-        return;
-    }
+    voronoi.edges.forEach((edge, i) => {
 
-    let leftPolygon = voronoiPolygons[edge.left.index],
-        rightPolygon = voronoiPolygons[edge.right.index]
-
-    leftPolygon.neighbours.push(rightPolygon)
-    rightPolygon.neighbours.push(leftPolygon)
-})
-
-function createLand() {
-    let polygon = voronoiPolygons[Math.floor(Math.random() * voronoiPolygons.length)],
-        sitesToColor = Math.floor(config.numberOfSites * config.landmass),
-        shorePolygons = []
-
-    //function for sorting polygons from most landlocked to least landlocked
-    function sortShorePolygons() {
-        shorePolygons.sort((a, b) => {
-            return b.landLockedness - a.landLockedness
-        })
-    }
-
-    function checkLandLockedness(polygon) {
-        let neighbourWaterProvinces = 0,
-            landLockedness = 0
-
-        polygon.neighbours.forEach((neighbour) => {
-            if (neighbour.height <= 0) {
-                neighbourWaterProvinces++
-            }
-        })
-
-        polygon.landLockedness = 1 - (neighbourWaterProvinces / polygon.neighbours.length)
-        console.log(landLockedness)
-        return landLockedness
-    }
-
-    function checkIfPolygonIsShore(polygon) {
-        if (polygon.height <= 0) {
-            polygon.landLockedness = null
-            return false
+        if (!edge.left || !edge.right) {
+            return;
         }
 
-        let isShore = false,
-            landLockedness = checkLandLockedness(polygon)
+        let leftPolygon = voronoiPolygons[edge.left.index],
+            rightPolygon = voronoiPolygons[edge.right.index]
 
-        isShore = (landLockedness < 1)
+        leftPolygon.neighbours.push(rightPolygon)
+        rightPolygon.neighbours.push(leftPolygon)
+    })
+}
 
-        if (isShore && shorePolygons.indexOf(polygon) === -1) {
-            console.log('adding shore ', landLockedness)
-            shorePolygons.push(polygon)
-            sortShorePolygons()
-        } else if (!isShore && shorePolygons.indexOf(polygon) > -1) {
-            console.log('removing shore ', landLockedness)
-            shorePolygons.splice(shorePolygons.indexOf(polygon), 1)
-        }
-
-        return isShore
+function determineColour(d) {
+    if (!d) {
+        return
     }
+    let color
 
-    //function searching for the best candidate to be a next land polygon
-    function getNextPolygon(oldPolygon) {
-        let nextPolygon,
-            nextPolygonSource
-        let waterPolygons = oldPolygon.neighbours.filter((neighbour) => {
-            return neighbour.height <= 0
-        })
-
-        if (!shorePolygons.length || Math.random() > 1 - (3 / (config.landmass * config.numberOfSites))) {
-            //sometimes we want to start a new continent
-            waterPolygons = voronoiPolygons.filter((polygon) => {
-                return polygon.height <= 0
-            })
-        } else if (!waterPolygons.length || (oldPolygon.landLockedness > .6 && Math.random() > .4)) {
-            nextPolygonSource = shorePolygons[Math.floor(randomNorm(3) * shorePolygons.length)]
-            waterPolygons = nextPolygonSource.neighbours.filter((neighbour) => {
-                return neighbour.height <= 0
-            })
-        }
-        nextPolygon = waterPolygons[Math.floor(randomNorm(1) * waterPolygons.length)]
-
-        return nextPolygon
+    if (d.height <= 0) {
+        color = d3.interpolate('#333', "#000")(d.height / -20)
+    } else {
+        color = d3.interpolate('#666', '#fff')(d.height / 30)
     }
-
-    function setLand(polygon) {
-        polygon.height = 1
-        checkIfPolygonIsShore(polygon)
-        polygon.neighbours.forEach((neighbour) => {
-            checkIfPolygonIsShore(neighbour)
-        })
-    }
-    setLand(polygon)
-
-    while (sitesToColor > 0) {
-        sitesToColor--
-        polygon = getNextPolygon(polygon)
-        setLand(polygon)
-    }
-    console.log(shorePolygons)
-
+    return color
 }
 
 function drawPolygons() {
@@ -157,20 +81,21 @@ function drawPolygons() {
         .selectAll("path")
         .data(voronoiPolygons)
         .enter().append("path")
-        .attr("d", function(d) {
+        .attr("d", function (d) {
             return d ? "M" + d.join("L") + "Z" : null;
         })
-        .attr('fill', function(d, i) {
+        .attr('fill', determineColour)
+        .attr('data-landlockeness', (d) => {
             if (!d) {
                 return
             }
-            let color = d3.interpolate("rgb(174, 236, 255)", "rgb(141, 230, 153)")(d.height)
-            return color
-        })
+            return d.landLockedness
+        }).style('stroke', determineColour)
 }
 
 (function init() {
-    createLand()
+    prepareVoronoi()
+    landmass.init(voronoiPolygons, config)
+    mountains.init(voronoiPolygons, config)
     drawPolygons()
-
 })()
