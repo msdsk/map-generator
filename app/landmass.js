@@ -1,9 +1,9 @@
 import helpers from 'helpers'
 
-function createLand(voronoiPolygons, config) {
+function createLand(voronoiPolygons, config, landData) {
     let polygon = voronoiPolygons[Math.floor(Math.random() * voronoiPolygons.length)],
         sitesToColor = Math.floor(config.numberOfSites * config.landmass),
-        shorePolygons = []
+        shorePolygons = landData.shorePolygons
 
     //function for sorting polygons from most landlocked to least landlocked
     function sortShorePolygons() {
@@ -163,6 +163,9 @@ function createLand(voronoiPolygons, config) {
     }
     setBasicLandShape()
 
+    return {
+        shorePolygons: shorePolygons
+    }
 }
 
 export default {

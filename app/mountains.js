@@ -1,8 +1,8 @@
 import helpers from 'helpers'
 
-function createMountains(voronoiPolygons, config) {
+function createMountains(voronoiPolygons, config, landData) {
     let mountainConfig = {
-        rangeLength: [config.numberOfSitesSquareRoot * 2, config.numberOfSitesSquareRoot * 5],
+        rangeLength: [config.numberOfSitesSquareRoot * 3, config.numberOfSitesSquareRoot * 10],
         minHeightToBeCalledAMountain: 10,
         tooDeepToMakeMountains: 0
     }
@@ -26,10 +26,15 @@ function createMountains(voronoiPolygons, config) {
                 lengthMax = mountainConfig.rangeLength[1],
                 length = Math.floor(Math.random() * (lengthMax - lengthMin) + lengthMin),
                 polygon = flatAreas[Math.floor(Math.random() * flatAreas.length)],
-                currentHeight = 30
+                currentHeight = (() => {
+                    return Math.floor(Math.random() * 15 + 15)
+                })()
 
             function createPeak(polygon) {
-                polygon.height = polygon.height + currentHeight + (Math.random() - .5) * 10
+                currentHeight = currentHeight + (Math.random() - .5) * 10
+                currentHeight = currentHeight < 10 ? 10 : currentHeight
+                currentHeight = currentHeight > 35 ? 35 : currentHeight
+                polygon.height = polygon.height + currentHeight
                 peaks.push(polygon)
             }
             createPeak(polygon)
@@ -43,7 +48,7 @@ function createMountains(voronoiPolygons, config) {
                 suitablePolygons.sort((a, b) => {
                     return a.neighboursHeight - b.neighboursHeight
                 })
-                polygon = suitablePolygons[Math.floor(helpers.randomNorm(5) * suitablePolygons.length)]
+                polygon = suitablePolygons[Math.floor(helpers.randomNorm(3) * suitablePolygons.length)]
                 if (!polygon) {
                     break;
                 }
@@ -66,7 +71,7 @@ function createMountains(voronoiPolygons, config) {
                 //     //     lowestHeight = neighbour.height
                 //     // }
                 // })
-                let height = sourcePolygon.height - Math.random() * 3 - 4
+                let height = sourcePolygon.height - Math.random() * 1.5 - 3.5
                 return height > polygon.height ? height : polygon.height
             }
 
@@ -97,7 +102,7 @@ function createMountains(voronoiPolygons, config) {
         let landPolygons = voronoiPolygons.filter(polygon => {
                 return polygon.height > 1
             }),
-            erosionStrength = .2
+            erosionStrength = .02
         landPolygons.sort((a, b) => {
             return b.height - a.height
         })
@@ -123,9 +128,11 @@ function createMountains(voronoiPolygons, config) {
             erodePolygon(source)
         }
     }
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         erodeLand()
     }
+
+    return landData
 
 }
 

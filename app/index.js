@@ -7,6 +7,7 @@ import 'styles/index.scss';
 const d3 = Object.assign({}, require("d3-selection"), require("d3-voronoi"), require("d3-interpolate"), require("d3-collection"), require("d3-shape"), require("d3-path"), require("d3-polygon"), require("d3-quadtree"), require("d3-array"), require("d3-random"));
 import landmass from 'landmass'
 import mountains from 'mountains'
+import climate from 'climate'
 
 // ================================
 // START YOUR APP HERE
@@ -17,10 +18,16 @@ const svg = d3.select('svg'),
 
 const config = {
     numberOfSites: 10000,
-    landmass: .6,
+    landmass: (() => {
+        return Math.random() * .4 + .3
+    })(),
     mountainPasses: (() => {
-        return Math.floor(Math.random() * 3 + 5)
+        return Math.floor(Math.random() * 3 + 3)
     })()
+}
+
+let landData = {
+    shorePolygons: []
 }
 
 config.numberOfSitesSquareRoot = Math.floor(Math.pow(config.numberOfSites, .5))
@@ -31,7 +38,7 @@ svg.attr('width', width).attr('height', height)
 
 function prepareVoronoi() {
 
-    let sites = d3.range(config.numberOfSites).map(function (d) {
+    let sites = d3.range(config.numberOfSites).map(function(d) {
         return [Math.round(Math.random() * width), Math.round(Math.random() * height)]
     })
 
@@ -49,7 +56,6 @@ function prepareVoronoi() {
         //getting more uniform points distribution
         let polygons = voronoi(sites).polygons(),
             centroids = polygons.map(d3.polygonCentroid)
-        console.log(centroids)
 
         sites.forEach((site, a) => {
             if (centroids[a]) {
@@ -58,7 +64,7 @@ function prepareVoronoi() {
             }
         })
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 1; i++) {
         relaxSites()
     }
 
@@ -89,16 +95,17 @@ function determineColour(d) {
     if (!d) {
         return
     }
-    let color
+    let colour, lightness
 
     if (d.height <= 0) {
-        color = d3.interpolate('#333', "#000")(d.height / -20)
+        lightness = d3.interpolate(15, 0)(d.height / -20)
     } else if (d.height === 1) {
-        color = "#727272"
+        lightness = 35
     } else {
-        color = d3.interpolate('#666', '#fff')(d.height / 30)
+        lightness = d3.interpolate(30, 100)(d.height / 50)
     }
-    return color
+    colour = `hsl(0, 0%, ${lightness}%)`
+    return colour
 }
 
 function drawPolygons() {
@@ -107,7 +114,7 @@ function drawPolygons() {
         .selectAll("path")
         .data(voronoiPolygons)
         .enter().append("path")
-        .attr("d", function (d) {
+        .attr("d", function(d) {
             return d ? "M" + d.join("L") + "Z" : null;
         })
         .style('fill', determineColour)
@@ -126,9 +133,14 @@ function drawPolygons() {
         .style('stroke', determineColour)
 }
 
+function drawClimate() {
+
+}
+
 (function init() {
     prepareVoronoi()
-    landmass.init(voronoiPolygons, config)
-    mountains.init(voronoiPolygons, config)
+    landData = landmass.init(voronoiPolygons, config, landData)
+    landData = mountains.init(voronoiPolygons, config, landData)
     drawPolygons()
+    climate.init(voronoiPolygons, config, landData)
 })()
