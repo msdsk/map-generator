@@ -5,48 +5,6 @@ function createLand(voronoiPolygons, config, landData) {
         sitesToColor = Math.floor(config.numberOfSites * config.landmass),
         shorePolygons = landData.shorePolygons
 
-    //function for sorting polygons from most landlocked to least landlocked
-    function sortShorePolygons() {
-        shorePolygons.sort((a, b) => {
-            return b.landLockedness - a.landLockedness
-        })
-    }
-
-    function checkLandLockedness(polygon) {
-        let neighbourWaterProvinces = 0,
-            landLockedness = 0
-
-        polygon.neighbours.forEach((neighbour) => {
-            if (neighbour.height <= 0) {
-                neighbourWaterProvinces++
-            }
-        })
-
-        landLockedness = polygon.landLockedness = 1 - (neighbourWaterProvinces / polygon.neighbours.length)
-        return landLockedness
-    }
-
-    function checkIfPolygonIsShore(polygon) {
-        if (polygon.height <= 0) {
-            polygon.landLockedness = null
-            return false
-        }
-
-        let isShore = false,
-            landLockedness = checkLandLockedness(polygon)
-
-        isShore = (landLockedness < 1)
-
-        if (isShore && shorePolygons.indexOf(polygon) === -1) {
-            shorePolygons.push(polygon)
-            sortShorePolygons()
-        } else if (!isShore && shorePolygons.indexOf(polygon) > -1) {
-            shorePolygons.splice(shorePolygons.indexOf(polygon), 1)
-        }
-
-        return isShore
-    }
-
     //function searching for the best candidate to be a next land polygon
     function getNextPolygon(oldPolygon) {
         let nextPolygon,
@@ -67,7 +25,7 @@ function createLand(voronoiPolygons, config, landData) {
             })
         }
         waterPolygons.forEach((waterPolygon) => {
-            checkLandLockedness(waterPolygon)
+            helpers.checkLandLockedness(waterPolygon)
         })
         waterPolygons.sort((a, b) => {
             return b.landLockedness - a.landLockedness
@@ -79,9 +37,9 @@ function createLand(voronoiPolygons, config, landData) {
 
     function setLand(polygon) {
         polygon.height = 1
-        checkIfPolygonIsShore(polygon)
+        helpers.checkIfPolygonIsShore(polygon, landData.shorePolygons)
         polygon.neighbours.forEach((neighbour) => {
-            checkIfPolygonIsShore(neighbour)
+            helpers.checkIfPolygonIsShore(neighbour, landData.shorePolygons)
         })
     }
     setLand(polygon)

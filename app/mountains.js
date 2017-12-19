@@ -2,9 +2,9 @@ import helpers from 'helpers'
 
 function createMountains(voronoiPolygons, config, landData) {
     let mountainConfig = {
-        rangeLength: [config.numberOfSitesSquareRoot * 3, config.numberOfSitesSquareRoot * 10],
+        rangeLength: [config.numberOfSitesSquareRoot / 2, config.numberOfSitesSquareRoot],
         minHeightToBeCalledAMountain: 10,
-        tooDeepToMakeMountains: 0
+        tooDeepToMakeMountains: -1
     }
     let flatAreas = voronoiPolygons.filter((polygon) => {
         return (polygon.height < mountainConfig.minHeightToBeCalledAMountain && polygon.height > mountainConfig.tooDeepToMakeMountains)
@@ -39,19 +39,27 @@ function createMountains(voronoiPolygons, config, landData) {
             }
             createPeak(polygon)
 
-            //looking for the best neighbour polygon to be the next in range
-            for (let i = 0; i < length; i++) {
+            function getSuitableNeighbourToBeNextPeak(polygon) {
                 let suitablePolygons = polygon.neighbours.filter((neighbour) => {
                     return (neighbour.height < mountainConfig.minHeightToBeCalledAMountain && neighbour.height > mountainConfig.tooDeepToMakeMountains)
                 })
-                suitablePolygons.forEach(checkNeighboursHeight)
-                suitablePolygons.sort((a, b) => {
-                    return a.neighboursHeight - b.neighboursHeight
-                })
-                polygon = suitablePolygons[Math.floor(helpers.randomNorm(3) * suitablePolygons.length)]
-                if (!polygon) {
-                    break;
+                if (suitablePolygons.length === 0) {
+                    polygon = getSuitableNeighbourToBeNextPeak(peaks[Math.floor(Math.random() * peaks.length)])
+                } else {
+                    suitablePolygons.forEach(checkNeighboursHeight)
+                    suitablePolygons.sort((a, b) => {
+                        return a.neighboursHeight - b.neighboursHeight
+                    })
+                    polygon = suitablePolygons[Math.floor(helpers.randomNorm(3) * suitablePolygons.length)]
                 }
+                return polygon
+            }
+
+            //looking for the best neighbour polygon to be the next in range
+            for (let i = 0; i < length; i++) {
+
+                polygon = getSuitableNeighbourToBeNextPeak(polygon)
+
                 createPeak(polygon)
             }
         }
@@ -131,6 +139,12 @@ function createMountains(voronoiPolygons, config, landData) {
     for (let i = 0; i < 5; i++) {
         erodeLand()
     }
+    voronoiPolygons.forEach(polygon => {
+        if (polygon.height > 3 || polygon.height < -2) {
+            return
+        }
+        helpers.checkIfPolygonIsShore(polygon, landData.shorePolygons)
+    })
 
     return landData
 
