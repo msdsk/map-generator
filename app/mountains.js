@@ -39,12 +39,16 @@ function createMountains(voronoiPolygons, config, landData) {
             }
             createPeak(polygon)
 
-            function getSuitableNeighbourToBeNextPeak(polygon) {
+            function getSuitableNeighbourToBeNextPeak(polygon, recursionDepth = 0) {
+                if (recursionDepth > 2) {
+                    return null
+                }
                 let suitablePolygons = polygon.neighbours.filter((neighbour) => {
                     return (neighbour.height < mountainConfig.minHeightToBeCalledAMountain && neighbour.height > mountainConfig.tooDeepToMakeMountains)
                 })
                 if (suitablePolygons.length === 0) {
-                    polygon = getSuitableNeighbourToBeNextPeak(peaks[Math.floor(Math.random() * peaks.length)])
+                    recursionDepth++
+                    polygon = getSuitableNeighbourToBeNextPeak(peaks[Math.floor(Math.random() * peaks.length)], recursionDepth)
                 } else {
                     suitablePolygons.forEach(checkNeighboursHeight)
                     suitablePolygons.sort((a, b) => {
@@ -58,7 +62,10 @@ function createMountains(voronoiPolygons, config, landData) {
             //looking for the best neighbour polygon to be the next in range
             for (let i = 0; i < length; i++) {
 
-                polygon = getSuitableNeighbourToBeNextPeak(polygon)
+                polygon = getSuitableNeighbourToBeNextPeak(polygon, 0)
+                if (!polygon) {
+                    break
+                }
 
                 createPeak(polygon)
             }
